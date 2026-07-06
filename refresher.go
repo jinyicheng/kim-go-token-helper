@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -95,7 +96,7 @@ func NewTokenRefresher(rdb *redis.Client, refreshFunc RefreshFunc, opts ...Optio
 //   - Redis 故障恢复后自动恢复服务
 //   - 收到退位广播立即发起抢锁
 func (r *TokenRefresher) Start(ctx context.Context) error {
-	fmt.Printf("[token-refresher] 服务启动，Key前缀: %s\n", r.config.KeyPrefix)
+	log.Printf("[token-refresher] 服务启动，Key前缀: %s\n", r.config.KeyPrefix)
 
 	// 订阅退位广播频道，收到消息立即触发抢锁
 	pubsub := r.rdb.Subscribe(ctx, r.abdicateChannel)
@@ -115,7 +116,7 @@ func (r *TokenRefresher) Start(ctx context.Context) error {
 		// 尝试抢占主节点锁
 		isMaster, err := r.tryBecomeMaster(ctx)
 		if err != nil {
-			fmt.Printf("[token-refresher] 抢主异常: %v，%v后重试\n", err, r.config.RetryInterval)
+			log.Printf("[token-refresher] 抢主异常: %v，%v后重试\n", err, r.config.RetryInterval)
 			time.Sleep(r.config.RetryInterval)
 			continue
 		}
@@ -125,7 +126,7 @@ func (r *TokenRefresher) Start(ctx context.Context) error {
 			fmt.Println("[token-refresher] 成为主节点，开始接管Token刷新")
 			err = r.runAsMaster(ctx)
 			if err != nil && !errors.Is(err, errLostMaster) {
-				fmt.Printf("[token-refresher] 主节点运行异常: %v\n", err)
+				log.Printf("[token-refresher] 主节点运行异常: %v\n", err)
 			}
 			fmt.Println("[token-refresher] 丢失主节点身份，重新参与选举")
 			time.Sleep(r.config.RetryInterval)
@@ -256,7 +257,7 @@ func (r *TokenRefresher) keepLockAlive(ctx context.Context) {
 
 			// 续期失败，计数累加
 			failCount++
-			fmt.Printf("[token-refresher] 锁续期失败，连续失败次数: %d\n", failCount)
+			log.Printf("[token-refresher] 锁续期失败，连续失败次数: %d\n", failCount)
 
 			// 达到阈值，判定丢失主节点，退出看门狗
 			if failCount >= r.config.RenewFailThreshold {
@@ -285,7 +286,7 @@ func (r *TokenRefresher) startCheckLoop(ctx context.Context, lostMaster <-chan s
 			// 读取当前Token状态
 			token, valid, err := r.loadTokenFromCache(ctx)
 			if err != nil {
-				fmt.Printf("[token-refresher] 读取缓存失败: %v\n", err)
+				log.Printf("[token-refresher] 读取缓存失败: %v\n", err)
 				continue
 			}
 
@@ -311,7 +312,7 @@ func (r *TokenRefresher) triggerRefresh(ctx context.Context) {
 	defer r.refreshing.Store(false)
 
 	if err := r.refreshWithRetry(ctx); err != nil {
-		fmt.Printf("[token-refresher] 刷新执行失败: %v\n", err)
+		log.Printf("[token-refresher] 刷新执行失败: %v\n", err)
 	}
 }
 
@@ -325,7 +326,7 @@ func (r *TokenRefresher) refreshWithRetry(ctx context.Context) error {
 		newToken, err := r.refreshFunc(ctx)
 		if err != nil {
 			lastErr = err
-			fmt.Printf("[token-refresher] 第%d次调用第三方接口失败: %v\n", i+1, err)
+			log.Printf("[token-refresher] 第%d次调用第三方接口失败: %v\n", i+1, err)
 			time.Sleep(r.config.RetryInterval)
 			continue
 		}
