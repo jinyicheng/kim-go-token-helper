@@ -210,7 +210,7 @@ func (r *TokenRefresher) refreshWithRetry(ctx context.Context) error {
 }
 
 // 从缓存读取Token
-func (r *TokenRefresher) loadTokenFromCache(ctx context.Context) (*ThirdToken, bool, error) {
+func (r *TokenRefresher) loadTokenFromCache(ctx context.Context) (*Token, bool, error) {
 	var data []byte
 	var err error
 	data, err = r.rdb.Get(ctx, r.cacheKey).Bytes()
@@ -221,7 +221,7 @@ func (r *TokenRefresher) loadTokenFromCache(ctx context.Context) (*ThirdToken, b
 		return nil, false, err
 	}
 
-	var token ThirdToken
+	var token Token
 	if err = json.Unmarshal(data, &token); err != nil {
 		return nil, false, err
 	}

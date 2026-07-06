@@ -5,15 +5,15 @@ import (
 	"time"
 )
 
-// ThirdToken 第三方凭证通用结构体
-type ThirdToken struct {
+// Token 第三方凭证通用结构体
+type Token struct {
 	AccessToken string    `json:"access_token"`
 	ExpireAt    time.Time `json:"expire_at"`
 }
 
 // RefreshFunc 第三方Token刷新函数类型
 // 业务方实现该函数，传入工具包即可，无需修改工具内部逻辑
-type RefreshFunc func(ctx context.Context) (*ThirdToken, error)
+type RefreshFunc func(ctx context.Context) (*Token, error)
 
 // 默认常量配置
 const (

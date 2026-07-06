@@ -36,7 +36,7 @@ func NewTokenReader(rdb *redis.Client, opts ...Option) *TokenReader {
 
 // GetToken 获取有效Token
 // 缓存有效直接返回；无效则阻塞等待刷新完成，超时返回错误
-func (tr *TokenReader) GetToken(ctx context.Context) (*ThirdToken, error) {
+func (tr *TokenReader) GetToken(ctx context.Context) (*Token, error) {
 	token, valid, err := tr.loadToken(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("读取Token缓存失败: %w", err)
@@ -49,7 +49,7 @@ func (tr *TokenReader) GetToken(ctx context.Context) (*ThirdToken, error) {
 }
 
 // 阻塞等待刷新完成
-func (tr *TokenReader) waitForNewToken(ctx context.Context) (*ThirdToken, error) {
+func (tr *TokenReader) waitForNewToken(ctx context.Context) (*Token, error) {
 	waitCtx, cancel := context.WithTimeout(ctx, tr.config.MaxWaitTime)
 	defer cancel()
 
@@ -88,7 +88,7 @@ func (tr *TokenReader) waitForNewToken(ctx context.Context) (*ThirdToken, error)
 }
 
 // 从缓存读取并校验Token
-func (tr *TokenReader) loadToken(ctx context.Context) (*ThirdToken, bool, error) {
+func (tr *TokenReader) loadToken(ctx context.Context) (*Token, bool, error) {
 	data, err := tr.rdb.Get(ctx, tr.cacheKey).Bytes()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
@@ -97,7 +97,7 @@ func (tr *TokenReader) loadToken(ctx context.Context) (*ThirdToken, bool, error)
 		return nil, false, err
 	}
 
-	var token ThirdToken
+	var token Token
 	if err := json.Unmarshal(data, &token); err != nil {
 		return nil, false, err
 	}
