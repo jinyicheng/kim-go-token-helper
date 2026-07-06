@@ -81,7 +81,7 @@ token助手，简化token的部分实践
 
 [//]: # (	// 例如调用微信获取access_token、钉钉获取token等)
 
-[//]: # (	fmt.Println&#40;"正在调用第三方接口获取Token..."&#41;)
+[//]: # (	log.Println&#40;"正在调用第三方接口获取Token..."&#41;)
 
 [//]: # (	time.Sleep&#40;500 * time.Millisecond&#41; // 模拟网络耗时)
 

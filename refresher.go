@@ -123,12 +123,12 @@ func (r *TokenRefresher) Start(ctx context.Context) error {
 
 		// 抢锁成功，作为主节点运行
 		if isMaster {
-			fmt.Println("[token-refresher] 成为主节点，开始接管Token刷新")
+			log.Println("[token-refresher] 成为主节点，开始接管Token刷新")
 			err = r.runAsMaster(ctx)
 			if err != nil && !errors.Is(err, errLostMaster) {
 				log.Printf("[token-refresher] 主节点运行异常: %v\n", err)
 			}
-			fmt.Println("[token-refresher] 丢失主节点身份，重新参与选举")
+			log.Println("[token-refresher] 丢失主节点身份，重新参与选举")
 			time.Sleep(r.config.RetryInterval)
 			continue
 		}
@@ -145,7 +145,7 @@ func (r *TokenRefresher) Start(ctx context.Context) error {
 		case <-time.After(r.config.MasterElectionInterval):
 			// 定时轮询抢锁
 		case <-abdicateCh:
-			fmt.Println("[token-refresher] 收到主节点退位通知，立即发起抢锁")
+			log.Println("[token-refresher] 收到主节点退位通知，立即发起抢锁")
 		}
 	}
 }
@@ -249,7 +249,7 @@ func (r *TokenRefresher) keepLockAlive(ctx context.Context) {
 				// 用于快速发现缓存误删、Redis重启数据丢失等场景
 				exist, _ := r.rdb.Exists(ctx, r.cacheKey).Result()
 				if exist == 0 {
-					fmt.Println("[token-refresher] 检测到缓存Key丢失，立即触发刷新")
+					log.Println("[token-refresher] 检测到缓存Key丢失，立即触发刷新")
 					go r.triggerRefresh(ctx)
 				}
 				continue
@@ -261,7 +261,7 @@ func (r *TokenRefresher) keepLockAlive(ctx context.Context) {
 
 			// 达到阈值，判定丢失主节点，退出看门狗
 			if failCount >= r.config.RenewFailThreshold {
-				fmt.Println("[token-refresher] 锁续期连续失败，判定丢失主节点")
+				log.Println("[token-refresher] 锁续期连续失败，判定丢失主节点")
 				return
 			}
 		}
@@ -344,7 +344,7 @@ func (r *TokenRefresher) refreshWithRetry(ctx context.Context) error {
 
 		// 广播刷新完成信号，唤醒所有阻塞等待的业务服务
 		_ = r.rdb.Publish(ctx, r.refreshChannel, "ok").Err()
-		fmt.Println("[token-refresher] Token刷新成功，已广播通知")
+		log.Println("[token-refresher] Token刷新成功，已广播通知")
 		return nil
 	}
 
